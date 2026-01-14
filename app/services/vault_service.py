@@ -4,8 +4,13 @@ from app.schemas.vault import VaultEntryCreate
 from app.core.crypto import encrypt_password, decrypt_password
 
 def create_vault_entry(db: Session, entry: VaultEntryCreate, user_id: int) -> VaultEntry:
-    encrypted_data = encrypt_password(entry.master_password, entry.site_password)
-    
+    if entry.encrypted_password:
+        encrypted_data = entry.encrypted_password
+    elif entry.site_password and entry.master_password:
+        encrypted_data = encrypt_password(entry.master_password, entry.site_password)
+    else:
+        raise ValueError("Either encrypted_password OR (site_password + master_password) must be provided")
+
     db_entry = VaultEntry(
         site_name=entry.site_name,
         site_url=entry.site_url,

@@ -7,12 +7,14 @@ class VaultEntryBase(BaseModel):
     site_url: Optional[str] = None
 
 class VaultEntryCreate(VaultEntryBase):
-    site_password: str
-    master_password: str 
+    site_password: Optional[str] = None
+    master_password: Optional[str] = None
+    encrypted_password: Optional[str] = None 
 
 class VaultEntryRead(VaultEntryBase):
     id: int
     created_at: datetime
+    encrypted_password: Optional[str] = None # Include this so client can decrypt!
     
     class Config:
         from_attributes = True

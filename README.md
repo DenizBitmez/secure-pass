@@ -1,27 +1,31 @@
-# SecurePass - Zero-Knowledge Password Vault
+# SecurePass - Zero-Knowledge Password Vault & Security Suite
 
-SecurePass is a secure, backend-focused password manager API demonstrating **Zero-Knowledge Architecture**. Built with FastAPI and advanced cryptography standard (AES-256-GCM).
+SecurePass is a secure, backend-focused password manager API demonstrating **Zero-Knowledge Architecture**, **Multi-Factor Authentication**, and **Secure Sharing**. Built with FastAPI and advanced cryptography (AES-256-GCM, Argon2, RSA/JWT).
 
-## Zero-Knowledge Architecture
+## Key Features
 
+### 1. Zero-Knowledge Vault
 The core philosophy of SecurePass is that the server **knows nothing**. 
+- **No Master Password Storage**: Your Vault Key is derived on-the-fly (`PBKDF2-SHA256`) and never stored.
+- **AES-256-GCM Encryption**: Data is encrypted/decrypted only in memory during the request cycle.
+- **Isolate Architecture**: Even if the DB is stolen, vault entries are mere blobs of random noise without the user's master password.
 
-1. **No Master Password Storage**: Unlike traditional systems, your Master Password is NEVER stored in our database (not even hashed!).
-2. **Transient Encryption Keys**: 
-    - When you make a request, you send your Master Password.
-    - The server instantaneously derives a 256-bit encryption key using `PBKDF2-HMAC-SHA256` with a unique salt.
-    - This key is used *only* for that specific request (Encryption/Decryption) and immediately discarded from memory.
-3. **Encrypted at Rest**: The database only stores encrypted blobs (`Salt` + `Nonce` + `Ciphertext`). Without the Master Password (which only YOU know), this data is mathematically impossible to decrypt.
+### 2. Multi-User & Advanced Auth
+- **JWT Architecture**: Stateless authentication using secure JSON Web Tokens.
+- **Argon2 Hashing**: Passwords are hashed using the state-of-the-art Argon2 algorithm (superior to bcrypt/PBKDF2).
+- **User Isolation**: Strict database-level isolation ensures users can access *only* their own data.
 
-> Even if the server is compromised and the database is stolen, attackers cannot access your passwords.
+### 3. Two-Factor Authentication (2FA)
+- **Time-based OTP (TOTP)**: Compatible with Google Authenticator, Authy, Microsoft Authenticator.
+- **End-to-End Flow**: Setup (QR Code) -> Verify -> Enable -> Enforce.
 
-## Technical Stack
+### 4. Secure Sharing (Self-Destruct)
+- **Ephemeral Links**: Share sensitive data via a link that self-destructs after **one single view**.
+- **Transparent Encryption**: The server generates a random key, gives it to the creator, and forgets it. The key is in the URL hash, never stored in the DB.
 
-- **Framework**: FastAPI (High performance async framework)
-- **Cryptography**: `cryptography` library (AES-GCM, PBKDF2)
-- **Security**: "Have I Been Pwned" K-Anonymity API Integration
-- **Validation**: Pydantic Models
-- **Database**: SQLite (scalable to PostgreSQL)
+### 5. Utilities
+- **Password Generator**: Cryptographically strong random password generator (using OS `secrets` source).
+- **Health Checks**: Integration with `zxcvbn` (entropy) and `Have I Been Pwned` (breach check).
 
 ## Setup & Installation
 
@@ -43,6 +47,30 @@ The core philosophy of SecurePass is that the server **knows nothing**.
 
 4. **Access the API**
    - Open [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive Swagger UI.
+
+## Quick Start Guide
+
+### Step 1: Register & Login
+1. `POST /auth/register`: Create an account.
+2. `POST /auth/login`: Log in to receive your **Bearer Token** (JWT). 
+   *(In Swagger UI, click "Authorize" button and use your credentials).*
+
+### Step 2: Secure Your Account (Optional)
+1. `POST /auth/2fa/setup`: Get your TOTP Secret / QR URI.
+2. `POST /auth/2fa/enable`: Enter the code from your Authenticator app to activate protection.
+
+### Step 3: Use the Vault
+1. `POST /vault/`: Add a password (requires your transient **Master Password**).
+2. `POST /vault/{id}/reveal`: Decrypt and view a password.
+3. `GET /vault/`: List your encrypted entries.
+
+### Step 4: Share Securely
+1. `POST /share/create`: Send text, get a unique self-destruct link.
+2. `GET /share/{uuid}`: Open the link (Data is deleted immediately after!).
+
+### Step 5: Utilities
+1. `GET /generator/generate`: Create a strong password.
+2. `POST /vault/check-health`: Test your password strength.
 
 ## API Usage Examples
 

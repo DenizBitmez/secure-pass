@@ -8,5 +8,5 @@ def check_password_strength(password: str) -> dict:
     result = zxcvbn(password)
     return {
         "score": result["score"],
-        "feedback": result["feedback"]["warning"] or result["feedback"]["suggestions"]
+        "feedback": [result["feedback"]["warning"]] if result["feedback"]["warning"] else result["feedback"]["suggestions"]
     }
