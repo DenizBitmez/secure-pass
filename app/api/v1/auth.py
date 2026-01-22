@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -12,11 +12,14 @@ from app.schemas.token import Token
 from app.api import deps
 from app.services import auth_service
 from pydantic import BaseModel
+from app.core.limiter import limiter
 
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 def login_access_token(
+    request: Request,
     db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     user = db.query(User).filter(User.email == form_data.username).first()
@@ -35,8 +38,10 @@ def login_access_token(
     }
 
 @router.post("/register", response_model=UserResponse)
+@limiter.limit("3/minute")
 def register_user(
     *,
+    request: Request,
     db: Session = Depends(get_db),
     user_in: UserCreate,
 ) -> Any:
@@ -46,6 +51,9 @@ def register_user(
             status_code=400,
             detail="The user with this username already exists in the system.",
         )
+    
+    # Validate password strength
+    auth_service.validate_password_strength(user_in.password, user_inputs=[user_in.email])
     
     hashed_password = security.get_password_hash(user_in.password)
     db_user = User(
